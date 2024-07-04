@@ -8,42 +8,22 @@ from django.contrib.auth.forms import UserCreationForm
 from .models import Message, Room,  Topic, User
 from .forms import MyUserCreationForm, RoomForm, UserForm
 
-# Create your views here.
-
-# rooms = [
-#     {'id': 1, 'name': 'Lets learn python!'},
-#     {'id': 2, 'name': 'Desing with me'},
-#     {'id': 3, 'name': 'Frontend Developers'},    
-# ]
-
 def loginPage(request):
-    page = 'login'
-    
     if request.user.is_authenticated:
         return redirect('home')
 
     if request.method == 'POST':
         email = request.POST.get('email').lower()
         password = request.POST.get('password')
-        
-        try: 
-            user = User.objects.get(email=email)
-        except:
-            messages.error(request, 'User does not exist')
-
         user = authenticate(request, email=email, password=password)
-
         if user is not None:
             login(request, user)
             return redirect('home')
         else:
-            messages.error(request, 'Username OR password does not exist')
+            messages.error(request, 'Email or password is incorrect')
 
-    context = {'page': page}
+    context = {'page': 'login'}
     return render(request, 'base/login_register.html', context)
-
-
-
 
 def logoutUser(request):
     logout(request)
@@ -51,21 +31,18 @@ def logoutUser(request):
 
 
 def registerPage(request):
-    form = MyUserCreationForm() 
-
+    form = MyUserCreationForm()
     if request.method == 'POST':
         form = MyUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save(commit=False)
-            user.username = user.username.lower()
             user.save()
             login(request, user)
             return redirect('home')
         else:
             messages.error(request, 'An error occurred during registration')
-            print(form.errors)  # Print form errors to debug
-    return render(request, 'base/login_register.html', {'form': form})
 
+    return render(request, 'base/login_register.html', {'form': form})
 def home(request):
     q = request.GET.get('q') if request.GET.get('q') != None else ''
     rooms = Room.objects.filter\
@@ -87,10 +64,7 @@ def home(request):
 
 
 def room(request, pk):
-    # room = None
-    # for i in rooms:
-    #     if i['id'] == int(pk):
-    #         room = i
+    
     room = Room.objects.get(id=pk)
     room_messages = room.message_set.all()
     participants = room.participants.all()
