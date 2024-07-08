@@ -43,6 +43,7 @@ def registerPage(request):
             messages.error(request, 'An error occurred during registration')
 
     return render(request, 'base/login_register.html', {'form': form})
+
 def home(request):
     q = request.GET.get('q') if request.GET.get('q') != None else ''
     rooms = Room.objects.filter\
@@ -54,7 +55,6 @@ def home(request):
 
     topics = Topic.objects.all()[0:5]
     room_count = rooms.count()
-    # room_messages = Message.objects.all()
     room_messages = Message.objects.filter(Q(room__topic__name__icontains=q))
     context = {'rooms': rooms, 'topics': topics,'room_count': room_count, 
                'room_messages': room_messages}
@@ -125,7 +125,7 @@ def updateRoom(request, pk):
     topics = Topic.objects.all()
 
     if request.user != room.host:
-        return HttpResponse('You are not allowed here.') 
+        return HttpResponse('Host is the only one allowed to perform the action') 
 
     if request.method == 'POST':
         topic_name = request.POST.get('topic')

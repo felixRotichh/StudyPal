@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import BaseUserManager, AbstractUser, Group, Permission
 
-
+#Custom user
 class MyUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
@@ -67,7 +67,7 @@ class Message(models.Model):
     created = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ['-updated', '-created']
+        ordering = ['-created']
 
     def __str__(self):
         return self.body[0:50]
