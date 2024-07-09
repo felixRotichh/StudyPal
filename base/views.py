@@ -62,26 +62,31 @@ def home(request):
     # return HttpResponse('Home page')
 
 
-
 def room(request, pk):
-    
     room = Room.objects.get(id=pk)
-    room_messages = room.message_set.all()
+    room_messages = room.message_set.filter(parent__isnull=True).order_by('created')
     participants = room.participants.all()
 
     if request.method == 'POST':
+        parent_id = request.POST.get('parent_id')
+        parent_message = None
+        if parent_id:
+            parent_message = Message.objects.get(id=parent_id)
         message = Message.objects.create(
-            user = request.user,
-            room = room,
-            body = request.POST.get('body')
+            user=request.user,
+            room=room,
+            body=request.POST.get('body'),
+            parent=parent_message
         )
         room.participants.add(request.user)
         return redirect('room', pk=room.id)
 
-    context = {'room':room, 'room_messages': room_messages, 
-                'participants': participants}
+    context = {
+        'room': room,
+        'room_messages': room_messages,
+        'participants': participants
+    }
     return render(request, 'base/room.html', context)
-    # return HttpResponse('ROOM')
 
 
 
