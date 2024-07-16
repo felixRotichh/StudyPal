@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -37,7 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'base'
+    'base',
+    'channels'
 ]
 
 MIDDLEWARE = [
@@ -71,6 +73,14 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'studypal.wsgi.application'
+ASGI_APPLICATION = 'studypal.asgi.application'
+
+# Define channel layers
+CHANNEL_LAYERS = {
+    'default': {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    },
+}
 
 
 # Database
@@ -121,8 +131,8 @@ USE_TZ = True
 STATIC_URL = '/static/'
 MEDIA_URL = '/images/'
 
-STATICFILES_DIR = [
-    BASE_DIR / 'static'
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
 ]
 
 MEDIA_ROOT = BASE_DIR / 'static/images'

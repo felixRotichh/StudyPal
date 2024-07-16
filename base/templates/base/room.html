@@ -4,6 +4,7 @@
 <main class="profile-page layout layout--2">
   <div class="container">
     <div class="room">
+      <!-- Room Top Section -->
       <div class="room__top">
         <div class="room__topLeft">
           <a href="{% url 'home' %}">
@@ -14,6 +15,7 @@
           </a>
           <h3>Study Room</h3>
         </div>
+        <!-- Room Actions for Host -->
         {% if room.host == request.user %}
         <div class="room__topRight">
           <a href="{% url 'update-room' room.id %}">
@@ -36,7 +38,9 @@
         {% endif %}
       </div>
 
+      <!-- Room Box Section -->
       <div class="room__box scroll">
+        <!-- Room Header -->
         <div class="room__header scroll">
           <div class="room__info">
             <h3>{{ room.name }}</h3>
@@ -53,8 +57,11 @@
           </div>
           <span class="room__topics">{{ room.topic.name }}</span>
         </div>
+
+        <!-- Room Conversation -->
         <div class="room__conversation">
           <div class="threads scroll">
+            <!-- Display existing messages -->
             {% for message in room_messages %}
             <div class="thread">
               <div class="thread__top">
@@ -68,6 +75,7 @@
                   <span class="thread__date">{{ message.created|timesince }} ago</span>
                 </div>
 
+                <!-- Delete message option for message owner -->
                 {% if request.user == message.user %}
                 <a href="{% url 'delete-message' message.id %}">
                   <div class="thread__delete">
@@ -81,12 +89,14 @@
               </div>
               <div class="thread__details">
                 {{ message.body }}
+                <!-- Form for replying to messages -->
                 <form action="{% url 'room' room.id %}" method="POST">
                   {% csrf_token %}
                   <input type="hidden" name="parent_id" value="{{ message.id }}">
                   <input name="body" placeholder="Reply to this message..." />
                   <button type="submit">Reply</button>
                 </form>
+                <!-- Display replies to the message -->
                 {% for reply in message.replies.all %}
                 <div class="reply">
                   <div class="reply__author">
@@ -110,14 +120,17 @@
         </div>
       </div>
 
+      <!-- Room Message Section -->
       <div class="room__message">
-        <form action="{% url 'room' room.id %}" method="POST">
+        <form id="chat-form" action="{% url 'room' room.id %}" method="POST">
           {% csrf_token %}
-          <input name="body" placeholder="Write your message here..." />
+          <input id="chat-message-input" name="body" placeholder="Write your message here..." />
+          <button type="submit">Send</button>
         </form>
       </div>
     </div>
 
+    <!-- Participants Section -->
     <div class="participants">
       <h3 class="participants__top">Participants <span>({{ participants.count }} Joined)</span></h3>
       <div class="participants__list scroll">
@@ -136,4 +149,63 @@
     </div>
   </div>
 </main>
-{% endblock content %}
+
+<!-- JSON encoded room name -->
+<script id="room-name" type="application/json">{{ room.name|escapejs }}</script>
+
+<!-- WebSocket connection script -->
+<script>
+  let roomName = JSON.parse(document.getElementById('room-name').textContent);
+  let chatSocket = null;
+  let reconnectAttempts = 0;
+  const maxReconnectAttempts = 5;
+
+  function connectWebSocket() {
+    chatSocket = new WebSocket('ws://' + window.location.host + '/ws/room/' + encodeURIComponent(roomName) + '/');
+
+    chatSocket.onopen = function(e) {
+      console.log('WebSocket connection established');
+      reconnectAttempts = 0;
+    };
+
+    chatSocket.onclose = function(e) {
+      console.error('WebSocket connection closed unexpectedly. Attempting to reconnect...');
+      if (reconnectAttempts < maxReconnectAttempts) {
+        setTimeout(function() {
+          reconnectAttempts++;
+          connectWebSocket();
+        }, Math.min(1000 * Math.pow(2, reconnectAttempts), 30000)); // Exponential backoff
+      }
+    };
+
+    chatSocket.onmessage = function(e) {
+      const data = JSON.parse(e.data);
+      const message = data['message'];
+      console.log('Received message:', message);
+
+      // Handle displaying the received message in the UI
+      const chatLog = document.getElementById('chat-log');
+      const messageElement = document.createElement('div');
+      messageElement.textContent = message;
+      chatLog.appendChild(messageElement);
+    };
+
+    chatSocket.onerror = function(e) {
+      console.error('WebSocket error:', e);
+    };
+  }
+
+  connectWebSocket();
+
+  document.getElementById('chat-form').onsubmit = function(e) {
+    e.preventDefault();
+    const messageInput = document.getElementById('chat-message-input');
+    const message = messageInput.value;
+    chatSocket.send(JSON.stringify({
+      'message': message
+    }));
+    messageInput.value = '';
+  };
+</script>
+
+{% endblock %}
