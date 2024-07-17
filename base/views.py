@@ -29,7 +29,6 @@ def logoutUser(request):
     logout(request)
     return redirect('home')
 
-
 def registerPage(request):
     form = MyUserCreationForm()
     if request.method == 'POST':
@@ -44,33 +43,22 @@ def registerPage(request):
 
     return render(request, 'base/login_register.html', {'form': form})
 
-from django.shortcuts import render
-from django.db.models import Q
-from .models import Room, Topic, Message
-
 def home(request):
-    q = request.GET.get('q', '')  # Using get() with a default value
-    rooms = Room.objects.filter(
-        Q(topic__name__icontains=q) |
-        Q(name__icontains=q) |
-        Q(description__icontains=q)
-    )
+    q = request.GET.get('q') if request.GET.get('q') != None else ''
+    rooms = Room.objects.filter\
+            (
+            Q(topic__name__icontains=q) |
+            Q(name__icontains=q) |
+            Q(description__icontains=q)
+            )
 
-    topics = Topic.objects.all()[:5]  # top 5 topics
+    topics = Topic.objects.all()[0:5]
     room_count = rooms.count()
     room_messages = Message.objects.filter(Q(room__topic__name__icontains=q))
-
-    context = {
-        'rooms': rooms,
-        'topics': topics,
-        'room_count': room_count,
-        'room_messages': room_messages,
-        'search_query': q  # Sending the search query back to the template
-    }
+    context = {'rooms': rooms, 'topics': topics,'room_count': room_count, 
+               'room_messages': room_messages}
     return render(request, 'base/home.html', context)
-
     # return HttpResponse('Home page')
-
 
 def room(request, pk):
     room = Room.objects.get(id=pk)
@@ -129,6 +117,8 @@ def createRoom(request):
     context = {'form':form, 'topics': topics}
     return render(request, 'base/room_form.html', context)
 
+
+
 @login_required(login_url='login')
 def updateRoom(request, pk):
     room = Room.objects.get(id=pk)
@@ -177,6 +167,8 @@ def deleteMessage(request, pk):
         return redirect('home')
     return render(request, 'base/delete.html', {'obj': message})
 
+
+
 @login_required(login_url='login')
 def updateUser(request):
     user = request.user
@@ -186,9 +178,10 @@ def updateUser(request):
         form = UserForm(request.POST, request.FILES, instance=user)
         if form.is_valid():
             form.save()
-            return redirect('user-profile', pk=user.id)  
+            return redirect('user-profile', pk=user.id)
 
     return render(request, 'base/update-user.html', {'form': form})
+
 
 def topicsPage(request):
     q = request.GET.get('q') if request.GET.get('q') != None else ''
